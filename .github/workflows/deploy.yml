@@ -46,26 +46,3 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/my-web-app:latest
-
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-
-      - name: Deploy to Production Server via SSH
-        run: |
-          
-          echo "${{ secrets.SERVER_SSH_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-
-          
-          mkdir -p ~/.ssh
-          echo "StrictHostKeyChecking no" >> ~/.ssh/config
-
-          # Подключаемся по Tailscale IP и запускаем скрипт деплоя
-          ssh -i private_key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            docker pull ${{ secrets.DOCKER_USERNAME }}/my-web-app:latest
-            docker stop web-app || true
-            docker rm web-app || true
-            docker run -d --name web-app -p 80:3000 ${{ secrets.DOCKER_USERNAME }}/my-web-app:latest
-          EOF
