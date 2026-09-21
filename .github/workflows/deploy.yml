@@ -26,7 +26,7 @@ jobs:
           npm ci
           npm test
 
-deploy:
+  deploy:
     needs: build-and-test
     runs-on: ubuntu-24.04
     
@@ -54,11 +54,11 @@ deploy:
 
       - name: Deploy to Production Server via SSH
         run: |
-          # Создаем файл с приватным ключом из секрета
+          
           echo "${{ secrets.SERVER_SSH_KEY }}" > private_key.pem
           chmod 600 private_key.pem
 
-          # Отключаем проверку хоста, чтобы ssh не зависал на подтверждении fingerprint
+          
           mkdir -p ~/.ssh
           echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
