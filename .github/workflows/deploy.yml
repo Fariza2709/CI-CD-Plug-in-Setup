@@ -26,7 +26,7 @@ jobs:
           npm ci
           npm test
 
-  deploy:
+deploy:
     needs: build-and-test
     runs-on: ubuntu-24.04
     
@@ -52,15 +52,20 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Deploy to Production Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          timeout: 60s
-          script: |
+      - name: Deploy to Production Server via SSH
+        run: |
+          # Создаем файл с приватным ключом из секрета
+          echo "${{ secrets.SERVER_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+          # Отключаем проверку хоста, чтобы ssh не зависал на подтверждении fingerprint
+          mkdir -p ~/.ssh
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
+          # Подключаемся по Tailscale IP и запускаем скрипт деплоя
+          ssh -i private_key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             docker pull ${{ secrets.DOCKER_USERNAME }}/my-web-app:latest
             docker stop web-app || true
             docker rm web-app || true
             docker run -d --name web-app -p 80:3000 ${{ secrets.DOCKER_USERNAME }}/my-web-app:latest
+          EOF
